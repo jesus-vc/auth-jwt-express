@@ -3,14 +3,15 @@
 const jwt = require("jsonwebtoken");
 const { SECRET_KEY } = require("../config");
 
-
-/** Middleware: Authenticate user. */
+/** Middleware: Authenticate user by ensuring the request's token is valid. */
 
 function authenticateJWT(req, res, next) {
   try {
     const tokenFromBody = req.body._token;
     const payload = jwt.verify(tokenFromBody, SECRET_KEY);
-    req.user = payload; // create a current user
+
+    // Create a current user with payload. Example payload: '{ username: 'hey7', iat: 1700602687, exp: 1700606287 }'
+    req.user = payload;
     return next();
   } catch (err) {
     return next();
@@ -41,10 +42,11 @@ function ensureCorrectUser(req, res, next) {
     return next({ status: 401, message: "Unauthorized" });
   }
 }
+
 // end
 
 module.exports = {
   authenticateJWT,
   ensureLoggedIn,
-  ensureCorrectUser
+  ensureCorrectUser,
 };

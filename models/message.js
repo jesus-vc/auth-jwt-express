@@ -3,25 +3,24 @@
 const db = require("../db");
 const ExpressError = require("../expressError");
 
-
 /** Message on the site. */
 
 class Message {
-
   /** register new message -- returns
    *    {id, from_username, to_username, body, sent_at}
    */
 
-  static async create({from_username, to_username, body}) {
+  static async create(from_username, to_username, body) {
     const result = await db.query(
-        `INSERT INTO messages (
+      `INSERT INTO messages (
               from_username,
               to_username,
               body,
               sent_at)
             VALUES ($1, $2, $3, current_timestamp)
             RETURNING id, from_username, to_username, body, sent_at`,
-        [from_username, to_username, body]);
+      [from_username, to_username, body]
+    );
 
     return result.rows[0];
   }
@@ -30,15 +29,12 @@ class Message {
 
   static async markRead(id) {
     const result = await db.query(
-        `UPDATE messages
+      `UPDATE messages
            SET read_at = current_timestamp
            WHERE id = $1
            RETURNING id, read_at`,
-        [id]);
-
-    if (!result.rows[0]) {
-      throw new ExpressError(`No such message: ${id}`, 404);
-    }
+      [id]
+    );
 
     return result.rows[0];
   }
@@ -53,7 +49,7 @@ class Message {
 
   static async get(id) {
     const result = await db.query(
-        `SELECT m.id,
+      `SELECT m.id,
                 m.from_username,
                 f.first_name AS from_first_name,
                 f.last_name AS from_last_name,
@@ -69,7 +65,8 @@ class Message {
             JOIN users AS f ON m.from_username = f.username
             JOIN users AS t ON m.to_username = t.username
           WHERE m.id = $1`,
-        [id]);
+      [id]
+    );
 
     let m = result.rows[0];
 
@@ -96,7 +93,22 @@ class Message {
       read_at: m.read_at,
     };
   }
-}
 
+  static async getMessageByIdandUser(id, username) {
+    const message = await db.query(
+      "SELECT id,read_at from messages where id=$1 and (to_username=$2 OR from_username=$2)",
+      [id, username]
+    );
+    return message.rows[0];
+  }
+
+  static async findUnreadMessageByIdAndUser(id, username) {
+    const message = await db.query(
+      "SELECT id,read_at from messages where id=$1 and to_username=$2 and read_at IS NULL",
+      [id, username]
+    );
+    return message.rows[0];
+  }
+}
 
 module.exports = Message;
